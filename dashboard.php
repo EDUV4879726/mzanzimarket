@@ -8,78 +8,65 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$user_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM users"))['total'];
-$product_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM products"))['total'];
-$order_count = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders"))['total'];
+$seller_id = $_SESSION['user_id'];
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $product_name = mysqli_real_escape_string($conn, $_POST['product_name']);
+    $description = mysqli_real_escape_string($conn, $_POST['description']);
+    $price = $_POST['price'];
+    $category_id = $_POST['category_id'];
+
+    $query = "INSERT INTO products (seller_id, category_id, product_name, description, price, status)
+              VALUES ($seller_id, $category_id, '$product_name', '$description', '$price', 'pending')";
+
+    mysqli_query($conn, $query);
+}
+
+$products = mysqli_query($conn, "SELECT products.*, categories.category_name
+                                 FROM products
+                                 LEFT JOIN categories ON products.category_id = categories.category_id
+                                 WHERE seller_id = $seller_id");
+$categories = mysqli_query($conn, "SELECT * FROM categories");
 ?>
 
 <div class="container mt-4">
-    <h1>Admin Dashboard</h1>
-    <p>Welcome, <?php echo $_SESSION['name']; ?>. This area is used to manage the MzanziMarket platform.</p>
+    <h1>Seller Dashboard</h1>
+    <p>This page allows sellers to add and view their product listings.</p>
 
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card p-4 text-center">
-                <h3><?php echo $user_count; ?></h3>
-                <p>Total Users</p>
-            </div>
-        </div>
+    <div class="card p-4 mb-4">
+        <h3>Add New Product</h3>
 
-        <div class="col-md-4">
-            <div class="card p-4 text-center">
-                <h3><?php echo $product_count; ?></h3>
-                <p>Total Products</p>
-            </div>
-        </div>
+        <form method="POST">
+            <input class="form-control mb-3" type="text" name="product_name" placeholder="Product Name" required>
+            <textarea class="form-control mb-3" name="description" placeholder="Product Description" required></textarea>
+            <input class="form-control mb-3" type="number" step="0.01" name="price" placeholder="Price" required>
 
-        <div class="col-md-4">
-            <div class="card p-4 text-center">
-                <h3><?php echo $order_count; ?></h3>
-                <p>Total Orders</p>
-            </div>
-        </div>
+            <select class="form-control mb-3" name="category_id" required>
+                <?php while ($cat = mysqli_fetch_assoc($categories)) { ?>
+                    <option value="<?php echo $cat['category_id']; ?>">
+                        <?php echo $cat['category_name']; ?>
+                    </option>
+                <?php } ?>
+            </select>
+
+            <button class="btn btn-primary" type="submit">Add Product</button>
+        </form>
     </div>
 
-    <h2 class="mt-5">Registered Users</h2>
-    <table class="table table-bordered table-striped mt-3">
-        <tr>
-            <th>User ID</th>
-            <th>Full Name</th>
-            <th>Email</th>
-            <th>Role ID</th>
-            <th>Verified</th>
-        </tr>
+    <h3>My Products</h3>
 
-        <?php
-        $users = mysqli_query($conn, "SELECT * FROM users");
-        while ($row = mysqli_fetch_assoc($users)) {
-        ?>
-            <tr>
-                <td><?php echo $row['user_id']; ?></td>
-                <td><?php echo $row['full_name']; ?></td>
-                <td><?php echo $row['email']; ?></td>
-                <td><?php echo $row['role_id']; ?></td>
-                <td><?php echo $row['is_verified']; ?></td>
-            </tr>
-        <?php } ?>
-    </table>
-
-    <h2 class="mt-5">Product Listings</h2>
-    <table class="table table-bordered table-striped mt-3">
+    <table class="table table-bordered">
         <tr>
-            <th>Product ID</th>
-            <th>Product Name</th>
+            <th>Product</th>
+            <th>Category</th>
             <th>Price</th>
             <th>Status</th>
         </tr>
 
-        <?php
-        $products = mysqli_query($conn, "SELECT * FROM products");
-        while ($row = mysqli_fetch_assoc($products)) {
-        ?>
+        <?php while ($row = mysqli_fetch_assoc($products)) { ?>
             <tr>
-                <td><?php echo $row['product_id']; ?></td>
                 <td><?php echo $row['product_name']; ?></td>
+                <td><?php echo $row['category_name']; ?></td>
                 <td>R<?php echo $row['price']; ?></td>
                 <td><?php echo $row['status']; ?></td>
             </tr>
