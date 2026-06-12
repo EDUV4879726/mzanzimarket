@@ -1,6 +1,6 @@
 <?php
-include '../includes/db.php';
-include '../includes/header.php';
+include 'includes/db.php';
+include 'includes/header.php';
 
 $query = "SELECT products.*, users.full_name, categories.category_name
           FROM products
@@ -12,33 +12,51 @@ $result = mysqli_query($conn, $query);
 ?>
 
 <div class="container mt-4">
-    <h2>Manage Products</h2>
+    <h1 class="mb-4">Available Products</h1>
 
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Product Name</th>
-                <th>Category</th>
-                <th>Seller</th>
-                <th>Price</th>
-                <th>Status</th>
-            </tr>
-        </thead>
+    <div class="row">
 
-        <tbody>
-            <?php while($row = mysqli_fetch_assoc($result)){ ?>
-            <tr>
-                <td><?php echo $row['product_id']; ?></td>
-                <td><?php echo $row['product_name']; ?></td>
-                <td><?php echo $row['category_name']; ?></td>
-                <td><?php echo $row['full_name']; ?></td>
-                <td>R<?php echo $row['price']; ?></td>
-                <td><?php echo $row['status']; ?></td>
-            </tr>
-            <?php } ?>
-        </tbody>
-    </table>
+        <?php while($row = mysqli_fetch_assoc($result)){ ?>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm p-3">
+
+                <h4><?php echo $row['product_name']; ?></h4>
+
+                <p>
+                    <?php echo $row['description']; ?>
+                </p>
+
+                <p>
+                    <strong>Category:</strong>
+                    <?php echo $row['category_name']; ?>
+                </p>
+
+                <p>
+                    <strong>Seller:</strong>
+                    <?php echo $row['full_name']; ?>
+                </p>
+
+                <p>
+                    <strong>Price:</strong>
+                    R<?php echo $row['price']; ?>
+                </p>
+
+                <p>
+                    <strong>Status:</strong>
+                    <?php echo $row['status']; ?>
+                </p>
+
+                <a href="product.php?id=<?php echo $row['product_id']; ?>" class="btn btn-primary">
+                    View Product
+                </a>
+
+            </div>
+        </div>
+
+        <?php } ?>
+
+    </div>
 </div>
 
-<?php include '../includes/footer.php'; ?>
+<?php include 'includes/footer.php'; ?>
