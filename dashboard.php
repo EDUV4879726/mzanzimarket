@@ -1,77 +1,67 @@
 <?php
-session_start();
+require_once '../includes/auth.php';
+requireRole('admin');
 include '../includes/db.php';
 include '../includes/header.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit();
-}
-
-$seller_id = $_SESSION['user_id'];
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $product_name = mysqli_real_escape_string($conn, $_POST['product_name']);
-    $description = mysqli_real_escape_string($conn, $_POST['description']);
-    $price = $_POST['price'];
-    $category_id = $_POST['category_id'];
-
-    $query = "INSERT INTO products (seller_id, category_id, product_name, description, price, status)
-              VALUES ($seller_id, $category_id, '$product_name', '$description', '$price', 'pending')";
-
-    mysqli_query($conn, $query);
-}
-
-$products = mysqli_query($conn, "SELECT products.*, categories.category_name
-                                 FROM products
-                                 LEFT JOIN categories ON products.category_id = categories.category_id
-                                 WHERE seller_id = $seller_id");
-$categories = mysqli_query($conn, "SELECT * FROM categories");
+$users = $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+$products = $pdo->query('SELECT COUNT(*) FROM products')->fetchColumn();
+$orders = $pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn();
+$pendingProducts = $pdo->query('SELECT COUNT(*) FROM products WHERE status = "pending"')->fetchColumn();
+$pendingOrders = $pdo->query('SELECT COUNT(*) FROM orders WHERE order_status = "pending"')->fetchColumn();
 ?>
-
-<div class="container mt-4">
-    <h1>Seller Dashboard</h1>
-    <p>This page allows sellers to add and view their product listings.</p>
-
-    <div class="card p-4 mb-4">
-        <h3>Add New Product</h3>
-
-        <form method="POST">
-            <input class="form-control mb-3" type="text" name="product_name" placeholder="Product Name" required>
-            <textarea class="form-control mb-3" name="description" placeholder="Product Description" required></textarea>
-            <input class="form-control mb-3" type="number" step="0.01" name="price" placeholder="Price" required>
-
-            <select class="form-control mb-3" name="category_id" required>
-                <?php while ($cat = mysqli_fetch_assoc($categories)) { ?>
-                    <option value="<?php echo $cat['category_id']; ?>">
-                        <?php echo $cat['category_name']; ?>
-                    </option>
-                <?php } ?>
-            </select>
-
-            <button class="btn btn-primary" type="submit">Add Product</button>
-        </form>
+<h2>Admin Dashboard</h2>
+<div class="row text-center mb-4">
+  <div class="col-md-3">
+    <div class="dashboard-box">
+      <h3><?php echo $users; ?></h3>
+      <p class="mb-0">Total Users</p>
     </div>
-
-    <h3>My Products</h3>
-
-    <table class="table table-bordered">
-        <tr>
-            <th>Product</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Status</th>
-        </tr>
-
-        <?php while ($row = mysqli_fetch_assoc($products)) { ?>
-            <tr>
-                <td><?php echo $row['product_name']; ?></td>
-                <td><?php echo $row['category_name']; ?></td>
-                <td>R<?php echo $row['price']; ?></td>
-                <td><?php echo $row['status']; ?></td>
-            </tr>
-        <?php } ?>
-    </table>
+  </div>
+  <div class="col-md-3">
+    <div class="dashboard-box">
+      <h3><?php echo $products; ?></h3>
+      <p class="mb-0">Total Products</p>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="dashboard-box">
+      <h3><?php echo $orders; ?></h3>
+      <p class="mb-0">Total Orders</p>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="dashboard-box" style="border-left:4px solid #ffc107;">
+      <h3 class="text-warning"><?php echo $pendingProducts; ?></h3>
+      <p class="mb-0">Pending Products</p>
+    </div>
+  </div>
 </div>
 
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card h-100 text-center p-4">
+      <i class="bi bi-people fs-1 text-primary mb-2"></i>
+      <h5>Manage Users</h5>
+      <p class="text-muted small">View, verify, and delete user accounts.</p>
+      <a href="users.php" class="btn btn-primary">Go to Users</a>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 text-center p-4">
+      <i class="bi bi-box-seam fs-1 text-success mb-2"></i>
+      <h5>Manage Products</h5>
+      <p class="text-muted small">Approve, decline, or delete product listings. <?php echo $pendingProducts > 0 ? "<span class='badge bg-warning text-dark'>$pendingProducts pending</span>" : ''; ?></p>
+      <a href="products.php" class="btn btn-success">Go to Products</a>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 text-center p-4">
+      <i class="bi bi-receipt fs-1 text-secondary mb-2"></i>
+      <h5>View Orders</h5>
+      <p class="text-muted small">Track and update order statuses. <?php echo $pendingOrders > 0 ? "<span class='badge bg-warning text-dark'>$pendingOrders pending</span>" : ''; ?></p>
+      <a href="orders.php" class="btn btn-secondary">Go to Orders</a>
+    </div>
+  </div>
+</div>
 <?php include '../includes/footer.php'; ?>
