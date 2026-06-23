@@ -1,67 +1,80 @@
 <?php
 require_once '../includes/auth.php';
-requireRole('admin');
+requireRole('seller');
 include '../includes/db.php';
 include '../includes/header.php';
 
-$users = $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
-$products = $pdo->query('SELECT COUNT(*) FROM products')->fetchColumn();
-$orders = $pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn();
-$pendingProducts = $pdo->query('SELECT COUNT(*) FROM products WHERE status = "pending"')->fetchColumn();
-$pendingOrders = $pdo->query('SELECT COUNT(*) FROM orders WHERE order_status = "pending"')->fetchColumn();
+$stmt = $pdo->prepare('SELECT p.*, c.category_name FROM products p LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.seller_id = ? ORDER BY p.created_at DESC');
+$stmt->execute([$_SESSION['user_id']]);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$total = count($products);
+$approved = count(array_filter($products, fn($p) => $p['status'] === 'approved'));
+$pending = count(array_filter($products, fn($p) => $p['status'] === 'pending'));
+$rejected = count(array_filter($products, fn($p) => $p['status'] === 'rejected'));
 ?>
-<h2>Admin Dashboard</h2>
+<h2>Seller Dashboard</h2>
+
 <div class="row text-center mb-4">
-  <div class="col-md-3">
-    <div class="dashboard-box">
-      <h3><?php echo $users; ?></h3>
-      <p class="mb-0">Total Users</p>
+    <div class="col-md-3">
+        <div class="dashboard-box">
+            <h3><?php echo $total; ?></h3>
+            <p class="mb-0">Total Products</p>
+        </div>
     </div>
-  </div>
-  <div class="col-md-3">
-    <div class="dashboard-box">
-      <h3><?php echo $products; ?></h3>
-      <p class="mb-0">Total Products</p>
+    <div class="col-md-3">
+        <div class="dashboard-box">
+            <h3 class="text-success"><?php echo $approved; ?></h3>
+            <p class="mb-0">Approved</p>
+        </div>
     </div>
-  </div>
-  <div class="col-md-3">
-    <div class="dashboard-box">
-      <h3><?php echo $orders; ?></h3>
-      <p class="mb-0">Total Orders</p>
+    <div class="col-md-3">
+        <div class="dashboard-box">
+            <h3 class="text-warning"><?php echo $pending; ?></h3>
+            <p class="mb-0">Pending</p>
+        </div>
     </div>
-  </div>
-  <div class="col-md-3">
-    <div class="dashboard-box" style="border-left:4px solid #ffc107;">
-      <h3 class="text-warning"><?php echo $pendingProducts; ?></h3>
-      <p class="mb-0">Pending Products</p>
+    <div class="col-md-3">
+        <div class="dashboard-box">
+            <h3 class="text-danger"><?php echo $rejected; ?></h3>
+            <p class="mb-0">Rejected</p>
+        </div>
     </div>
-  </div>
 </div>
 
-<div class="row g-3">
-  <div class="col-md-4">
-    <div class="card h-100 text-center p-4">
-      <i class="bi bi-people fs-1 text-primary mb-2"></i>
-      <h5>Manage Users</h5>
-      <p class="text-muted small">View, verify, and delete user accounts.</p>
-      <a href="users.php" class="btn btn-primary">Go to Users</a>
+<a href="add_product.php" class="btn btn-primary mb-3">+ Add New Product</a>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Status</th><th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($products as $p): ?>
+                    <tr>
+                        <td>
+                            <img src="../uploads/<?php echo htmlspecialchars($p['image']); ?>" style="width:60px;height:50px;object-fit:cover;border-radius:6px;" onerror="this.src='https://via.placeholder.com/60x50?text=No+Image'">
+                        </td>
+                        <td><?php echo htmlspecialchars($p['product_name']); ?></td>
+                        <td><?php echo htmlspecialchars($p['category_name'] ?? 'Uncategorized'); ?></td>
+                        <td>R<?php echo number_format($p['price'], 2); ?></td>
+                        <td>
+                            <span class="badge bg-<?php echo $p['status'] === 'approved' ? 'success' : ($p['status'] === 'rejected' ? 'danger' : 'warning'); ?>">
+                                <?php echo ucfirst($p['status']); ?>
+                            </span>
+                        </td>
+                        <td>
+                            <a href="edit_product.php?id=<?php echo $p['product_id']; ?>" class="btn btn-sm btn-warning">Edit</a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card h-100 text-center p-4">
-      <i class="bi bi-box-seam fs-1 text-success mb-2"></i>
-      <h5>Manage Products</h5>
-      <p class="text-muted small">Approve, decline, or delete product listings. <?php echo $pendingProducts > 0 ? "<span class='badge bg-warning text-dark'>$pendingProducts pending</span>" : ''; ?></p>
-      <a href="products.php" class="btn btn-success">Go to Products</a>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card h-100 text-center p-4">
-      <i class="bi bi-receipt fs-1 text-secondary mb-2"></i>
-      <h5>View Orders</h5>
-      <p class="text-muted small">Track and update order statuses. <?php echo $pendingOrders > 0 ? "<span class='badge bg-warning text-dark'>$pendingOrders pending</span>" : ''; ?></p>
-      <a href="orders.php" class="btn btn-secondary">Go to Orders</a>
-    </div>
-  </div>
 </div>
 <?php include '../includes/footer.php'; ?>
