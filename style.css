@@ -1,73 +1,38 @@
-body {
-    background: #f7f8fa;
-    font-family: Arial, sans-serif;
-}
+body{background:#f7f7f7}
+.hero{background:linear-gradient(135deg,#212529,#0d6efd);color:#fff;border-radius:18px;padding:55px 30px}
+.card{border:0;border-radius:14px;box-shadow:0 3px 12px rgba(0,0,0,.08)}
+.product-img{height:190px;object-fit:cover;background:#ddd}
+.badge-pending{background:#ffc107;color:#111}
+.badge-approved{background:#198754}
+.badge-rejected{background:#dc3545}
+.dashboard-box{padding:25px;border-radius:14px;background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.08)}
 
-.navbar {
-    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
-
-.hero {
-    background: linear-gradient(135deg, #212529, #0d6efd);
-    color: #fff;
-    border-radius: 18px;
-    padding: 60px 35px;
-    text-align: center;
-    margin-bottom: 30px;
+.navbar .badge {
+  animation: bounce 2s infinite;
 }
-
-.hero h1 {
-    font-weight: 700;
-}
-
 .card {
-    border: 0;
-    border-radius: 14px;
-    box-shadow: 0 3px 12px rgba(0,0,0,.08);
-    transition: transform .2s ease, box-shadow .2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 .card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,0,0,.12);
 }
-
+.table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
 .btn {
-    border-radius: 8px;
+  transition: all 0.2s ease;
 }
-
-.product-img {
-    height: 190px;
-    object-fit: cover;
-    background: #ddd;
-    border-radius: 10px;
+.btn:hover {
+  transform: translateY(-1px);
 }
-
-.badge-pending {
-    background: #ffc107;
-    color: #111;
-}
-
-.badge-approved {
-    background: #198754;
-}
-
-.badge-rejected {
-    background: #dc3545;
-}
-
-.dashboard-box {
-    padding: 25px;
-    border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 3px 12px rgba(0,0,0,.08);
-    text-align: center;
-}
-
-table {
-    background: #fff;
-}
-
-footer {
-    margin-top: 40px;
+.form-control:focus, .form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
 }
