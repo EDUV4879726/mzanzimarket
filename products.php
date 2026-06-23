@@ -1,67 +1,83 @@
 <?php
-require_once '../includes/auth.php';
-requireRole('admin');
-include '../includes/db.php';
-include '../includes/header.php';
+require_once 'includes/db.php';
+include 'includes/header.php';
 
-$message = '';
+$search = $_GET['search'] ?? '';
+$category = $_GET['category'] ?? '';
 
-if (isset($_GET['approve'])) {
-    $pdo->prepare('UPDATE products SET status = "approved" WHERE product_id = ?')->execute([$_GET['approve']]);
-    $message = 'Product approved.';
+$sql = "SELECT p.*, u.full_name, c.category_name FROM products p JOIN users u ON p.seller_id = u.user_id LEFT JOIN categories c ON p.category_id = c.category_id WHERE p.status = 'approved'";
+$params = [];
+
+if ($search) {
+    $sql .= " AND (p.product_name LIKE ? OR p.description LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
 }
-if (isset($_GET['reject'])) {
-    $pdo->prepare('UPDATE products SET status = "rejected" WHERE product_id = ?')->execute([$_GET['reject']]);
-    $message = 'Product rejected.';
-}
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
-    $img = $pdo->prepare('SELECT image FROM products WHERE product_id = ?');
-    $img->execute([$id]);
-    $imgName = $img->fetchColumn();
-    if ($imgName && $imgName !== 'default-product.jpg' && file_exists('../uploads/' . $imgName)) {
-        unlink('../uploads/' . $imgName);
-    }
-    $pdo->prepare('DELETE FROM products WHERE product_id = ?')->execute([$id]);
-    $message = 'Product deleted.';
+if ($category) {
+    $sql .= " AND p.category_id = ?";
+    $params[] = $category;
 }
 
-$products = $pdo->query('SELECT p.*, u.full_name, c.category_name FROM products p JOIN users u ON p.seller_id = u.user_id LEFT JOIN categories c ON p.category_id = c.category_id ORDER BY p.created_at DESC')->fetchAll(PDO::FETCH_ASSOC);
+$sql .= " ORDER BY p.created_at DESC";
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$categories = $pdo->query('SELECT * FROM categories')->fetchAll(PDO::FETCH_ASSOC);
 ?>
-<h2>Manage Products</h2>
-<?php if ($message): ?>
-<div class="alert alert-info"><?php echo htmlspecialchars($message); ?></div>
-<?php endif; ?>
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Approved Products</h2>
+        <p class="text-muted"><?php echo count($products); ?> product<?php echo count($products) !== 1 ? 's' : ''; ?> available</p>
+    </div>
+    <div class="col-md-4">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="search" class="form-control" placeholder="Search products..." value="<?php echo htmlspecialchars($search); ?>">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="<?php echo BASE_URL; ?>/products.php" class="btn btn-sm <?php echo $category === '' ? 'btn-dark' : 'btn-outline-dark'; ?>">All</a>
+            <?php foreach ($categories as $c): ?>
+            <a href="<?php echo BASE_URL; ?>/products.php?category=<?php echo $c['category_id']; ?>" class="btn btn-sm <?php echo $category == $c['category_id'] ? 'btn-dark' : 'btn-outline-dark'; ?>">
+                <?php echo htmlspecialchars($c['category_name']); ?>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+
+<?php if (empty($products)): ?>
+<div class="alert alert-info text-center py-5">
+    <h4>No products found</h4>
+    <p>Try adjusting your search or browse all categories.</p>
+</div>
+<?php else: ?>
 <div class="row">
     <?php foreach ($products as $p): ?>
-    <div class="col-md-6 col-lg-4 mb-4">
+    <div class="col-md-4 col-lg-3 mb-4">
         <div class="card h-100">
-            <img src="../uploads/<?php echo htmlspecialchars($p['image']); ?>" class="card-img-top" style="height:180px;object-fit:cover;" onerror="this.src='https://via.placeholder.com/400x180?text=No+Image'">
-            <div class="card-body">
+            <img src="<?php echo BASE_URL; ?>/uploads/<?php echo htmlspecialchars($p['image']); ?>" class="card-img-top product-img" onerror="this.src='https://via.placeholder.com/400x250?text=MzanziMarket'">
+            <div class="card-body d-flex flex-column">
                 <h5 class="card-title"><?php echo htmlspecialchars($p['product_name']); ?></h5>
-                <p class="card-text small text-muted"><?php echo htmlspecialchars(substr($p['description'], 0, 80)); ?><?php echo strlen($p['description']) > 80 ? '...' : ''; ?></p>
-                <p class="mb-1"><strong>R<?php echo number_format($p['price'], 2); ?></strong></p>
-                <p class="mb-1 small">Seller: <?php echo htmlspecialchars($p['full_name']); ?></p>
-                <p class="mb-1 small">Category: <?php echo htmlspecialchars($p['category_name'] ?? 'Uncategorized'); ?></p>
-                <p class="mb-2">
-                    <span class="badge bg-<?php echo $p['status'] === 'approved' ? 'success' : ($p['status'] === 'rejected' ? 'danger' : 'warning'); ?>">
-                        <?php echo ucfirst($p['status']); ?>
-                    </span>
-                </p>
-                <div class="d-flex gap-2 flex-wrap">
-                    <a class="btn btn-sm btn-success" href="?approve=<?php echo $p['product_id']; ?>">Approve</a>
-                    <a class="btn btn-sm btn-danger" href="?reject=<?php echo $p['product_id']; ?>">Decline</a>
-                    <a class="btn btn-sm btn-outline-danger" href="?delete=<?php echo $p['product_id']; ?>" onclick="return confirmAction('Delete this product permanently?')">Delete</a>
+                <p class="card-text small text-muted flex-grow-1"><?php echo htmlspecialchars(substr($p['description'], 0, 60)); ?><?php echo strlen($p['description']) > 60 ? '...' : ''; ?></p>
+                <p class="fw-bold text-success mb-1">R<?php echo number_format($p['price'], 2); ?></p>
+                <p class="small text-muted mb-2">Seller: <?php echo htmlspecialchars($p['full_name']); ?></p>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-primary btn-sm flex-fill" href="<?php echo BASE_URL; ?>/product.php?id=<?php echo $p['product_id']; ?>">View</a>
+                    <?php if (isLoggedIn() && userRole() === 'buyer'): ?>
+                    <a class="btn btn-success btn-sm" href="<?php echo BASE_URL; ?>/cart.php?add=<?php echo $p['product_id']; ?>">+ Cart</a>
+                    <?php endif; ?>
                 </div>
-            </div>
-            <div class="card-footer text-muted small">
-                Submitted: <?php echo date('d M Y', strtotime($p['created_at'])); ?>
             </div>
         </div>
     </div>
     <?php endforeach; ?>
 </div>
-<div class="mt-3">
-    <a href="dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
-</div>
-<?php include '../includes/footer.php'; ?>
+<?php endif; ?>
+
+<?php include 'includes/footer.php'; ?>
